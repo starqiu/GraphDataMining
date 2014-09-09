@@ -1,0 +1,22 @@
+{
+    "contents" : "",
+    "created" : 1409904590441.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "51626B6F",
+    "lastKnownWriteTime" : 4294967295,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "caption" : "table.sorted.by.sd",
+        "contentUrl" : "content?title=table.sorted.by.sd&file=fe1f127766c24eddaa52192a8ca81916.htm",
+        "displayedObservations" : "1000",
+        "displayedVariables" : 14,
+        "totalObservations" : "1000",
+        "variables" : "13"
+    },
+    "source_on_save" : false,
+    "type" : "r_dataframe"
+}

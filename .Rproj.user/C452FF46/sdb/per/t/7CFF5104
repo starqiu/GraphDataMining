@@ -1,0 +1,22 @@
+{
+    "contents" : "",
+    "created" : 1410224932400.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "7CFF5104",
+    "lastKnownWriteTime" : 943547756,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "caption" : "ta",
+        "contentUrl" : "content?title=ta&file=8a44051592f04f76949b2defbe509f82.htm",
+        "displayedObservations" : 6,
+        "displayedVariables" : 5,
+        "totalObservations" : 6,
+        "variables" : 5
+    },
+    "source_on_save" : false,
+    "type" : "r_dataframe"
+}
