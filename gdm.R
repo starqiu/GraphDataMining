@@ -164,7 +164,7 @@ pcc.test <- function(file.name){
 #   plotcluster(cor.table, kmeans_result$cluster) # 生成聚类图
 }
 
-#divide.files.by.periods()
+divide.files.by.periods()
 sd.test()
 max.ci.file.name <- paste(BASE.PATH,"max_ci_features.txt")
 if(file.exists(max.ci.file.name)){
