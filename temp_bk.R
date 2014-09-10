@@ -6,3 +6,5 @@ for(i in 1:period.count){
 
 period.name <- paste("matrix_table_",1*4,"wk_with_mean_sd.txt",sep="")
 [c(1:features.filered.by.sd),c(2:(period.sample.count+4))]
+as.vector
+cbind(cluster,pcc.in.mean,pcc.out.mean,sds)
