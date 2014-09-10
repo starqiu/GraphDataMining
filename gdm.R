@@ -5,11 +5,11 @@ PERIOD.SAMPLE.COUNT <- 10 #each period has 10 samples
 PERIOD.COUNT <- 5 #we have 5 periods
 FEATURES.FILTERED.BY.SD <- 1000
 CLUSTER.AMOUNT <-3 
-matrix.table <- read.table(paste(BASE.PATH,FILE.NAME,sep=""),
-                     header=TRUE,sep="")
+
 
 divide.files.by.periods <- function(){
-  
+  matrix.table <- read.table(paste(BASE.PATH,FILE.NAME,sep=""),
+                             header=TRUE,sep="")
   period.name <- ""
   z <- c((1-PERIOD.SAMPLE.COUNT):1)  
   
@@ -23,6 +23,7 @@ divide.files.by.periods <- function(){
                 row.names = FALSE,
                 sep="\t")
   }
+  rm(matrix.table)
 }
 
 calc.and.filter.sd <- function(file.name,features.filered.by.sd=1000){
@@ -199,9 +200,9 @@ compare.to.example <- function(){
   example.dnb.t4 <-read.table(paste(BASE.PATH,"liver_DNB_t4.txt",sep=""))
   dnb <-read.table(paste(BASE.PATH,"dnb.txt",sep=""))
   #translate into vectors
-  example.dnb.t1 <- t(example.dnb.t1)[1,]
-  example.dnb.t4 <- t(example.dnb.t4)[1,]
-  dnb <- t(dnb)[1,]
+  example.dnb.t1 <- example.dnb.t1[,1]
+  example.dnb.t4 <- example.dnb.t4[,1]
+  dnb <- dnb[,1]
   
   #find common features
   common.features.t1 <- intersect(example.dnb.t1,dnb)
@@ -209,10 +210,17 @@ compare.to.example <- function(){
   common.features.t4 <- intersect(example.dnb.t4,dnb)
   print(common.features.t4)
 }
-# divide.files.by.periods()
-# sd.test()
-#dnb.test()
-#generate.dnb()
-compare.to.example()
+
+main <- function(){
+  divide.files.by.periods()
+  sd.test()
+  dnb.test()
+  generate.dnb()
+  compare.to.example()
+}
+
+system.time(main())
+
+
 
 
