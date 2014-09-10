@@ -74,7 +74,7 @@ calc.pcc <- function(file.name){
 }
 
 calc.ci <- function(x,pccin,pccout,sd){
-  x[pccin]*x[sd]/x[pccout]
+  x[pccout]*x[sd]/x[pccin]
 }
 
 pcc.test <- function(file.name){
@@ -164,15 +164,55 @@ pcc.test <- function(file.name){
 #   plotcluster(cor.table, kmeans_result$cluster) # 生成聚类图
 }
 
-divide.files.by.periods()
-sd.test()
-max.ci.file.name <- paste(BASE.PATH,"max_ci_features.txt")
-if(file.exists(max.ci.file.name)){
-  file.remove(max.ci.file.name)
+dnb.test <-function(){
+  max.ci.file.name <- paste(BASE.PATH,"max_ci_features.txt")
+  if(file.exists(max.ci.file.name)){
+    file.remove(max.ci.file.name)
+  }
+  for(i in 1:PERIOD.COUNT){
+    #4wk,8wk,12wk,16wk,20wk
+    period.name <- paste("matrix_table_",i*4,"wk",sep="")
+    calc.pcc(period.name)
+    pcc.test(period.name)
+  }
 }
-for(i in 1:PERIOD.COUNT){
-  #4wk,8wk,12wk,16wk,20wk
-  period.name <- paste("matrix_table_",i*4,"wk",sep="")
-  calc.pcc(period.name)
-  pcc.test(period.name)
+
+generate.dnb <-function(){
+  max.ci.file.name <- paste(BASE.PATH,"max_ci_features.txt")
+  max.ci.matrix <-read.table(max.ci.file.name,
+                             sep="",
+                             col.names=c("cluster","cluster.ci","cluster.vector"))
+  # get cluster.vector
+  dnb <- unlist(strsplit(as.character(max.ci.matrix[1,3]),","))
+  # print(dnb)
+  for(i in 2:PERIOD.COUNT){
+    dnb <- intersect(dnb,unlist(strsplit(as.character(max.ci.matrix[i,3]),",")))
+    #   print(dnb)
+  }
+  # print(dnb)
+  write.table(dnb,paste(BASE.PATH,"dnb.txt",sep=""),sep="\n",
+              col.names=FALSE,row.names=FALSE)
 }
+
+compare.to.example <- function(){
+  example.dnb.t1 <-read.table(paste(BASE.PATH,"liver_DNB_t1.txt",sep=""))
+  example.dnb.t4 <-read.table(paste(BASE.PATH,"liver_DNB_t4.txt",sep=""))
+  dnb <-read.table(paste(BASE.PATH,"dnb.txt",sep=""))
+  #translate into vectors
+  example.dnb.t1 <- t(example.dnb.t1)[1,]
+  example.dnb.t4 <- t(example.dnb.t4)[1,]
+  dnb <- t(dnb)[1,]
+  
+  #find common features
+  common.features.t1 <- intersect(example.dnb.t1,dnb)
+  print(common.features.t1)
+  common.features.t4 <- intersect(example.dnb.t4,dnb)
+  print(common.features.t4)
+}
+# divide.files.by.periods()
+# sd.test()
+#dnb.test()
+#generate.dnb()
+compare.to.example()
+
+
