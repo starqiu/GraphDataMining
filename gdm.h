@@ -9,10 +9,10 @@
 #define CLUSTER_AMOUNT  3 
 
 void divide_files_by_periods(){
-
+	printf("divide_files_by_periods");
 }
 
-void calc_and_filter_sd (file_name){
+void calc_and_filter_sd (char*  file_name){
 
 }
 
@@ -20,11 +20,7 @@ void sd_test(){
 
 }
 
-void calc_pcc (file_name){
-
-}
-
-void calc_pcc (file_name){
+void calc_pcc (char* file_name){
 
 }
 
@@ -32,7 +28,7 @@ double calc_ci (double pccin,double pccout,double sd){
 	return sd * pccin /pccout;
 }
 
-void pcc_test (string file_name){
+void pcc_test (char* file_name){
 
 }
 
