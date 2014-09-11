@@ -2,7 +2,7 @@ library(plyr)
 BASE.PATH <- "/host/data/"
 FILE.NAME <- "liver_labeled_data.txt"
 PERIOD.SAMPLE.COUNT <- 10 #each period has 10 samples
-PERIOD.COUNT <- 5 #we have 5 periods
+PERIOD.COUNT <- 5 #we have 5 periods:4wk,8wk,12wk,16wk,20wk
 FEATURES.FILTERED.BY.SD <- 1000
 CLUSTER.AMOUNT <-3 
 
@@ -48,7 +48,7 @@ calc.and.filter.sd <- function(file.name,features.filered.by.sd=1000){
               sep="\t")
 }
 
-sd.test <- function(table.with.sd){
+sd.test <- function(){
   for(i in 1:PERIOD.COUNT){   
     #4wk,8wk,12wk,16wk,20wk
     period.name <- paste("matrix_table_",i*4,"wk",sep="")
