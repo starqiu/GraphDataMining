@@ -15,12 +15,18 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\gdm.h">
+    <ClInclude Include="fileUtils.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="gdm.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="dataFrame.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\gdm.cpp">
+    <ClCompile Include="gdm.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

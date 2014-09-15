@@ -13,6 +13,7 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{6520D841-B3E5-44CE-B0D3-0A8F8123A8FC}</ProjectGuid>
     <RootNamespace>GraphDataMining</RootNamespace>
+    <ProjectName>GraphDataMining_cpp</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -60,10 +61,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\gdm.cpp" />
+    <ClInclude Include="dataFrame.h" />
+    <ClInclude Include="fileUtils.h" />
+    <ClInclude Include="gdm.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\gdm.h" />
+    <ClCompile Include="gdm.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
