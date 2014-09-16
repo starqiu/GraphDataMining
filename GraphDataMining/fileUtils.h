@@ -45,6 +45,38 @@ int read_table(string file_path,DataFrame* df,char delimiter){
     in.close();
     return 0;
 }
+
+/**
+* write data frame by row to generate  csv format file 
+*/
+int write_table(string file_path,DataFrame* df,char delimiter){
+    string line;
+	vector<vector<string>> rows = df->getRows();
+	bool isFirstLine = true;
+	bool isFirstElement = true;
+    ofstream out(file_path);
+	
+	for(vector<vector<string>>::iterator it = rows.begin();it != rows.end(); it++){
+		for(vector<string>::iterator inter_it = (*it).begin();inter_it != (*it).end(); inter_it++){
+			if(!isFirstElement){
+				line += delimiter;
+			}
+			isFirstElement = false;
+			line += *inter_it;
+		}
+		isFirstElement = true;
+		if(!isFirstLine){
+			out << endl;
+		}
+		isFirstLine = false;
+		out << line;
+		line = "";
+	}
+
+    out.close();
+    return 0;
+}
+
 /** split a string to generate a vecotr by delimiter*/
 void csvline_populate(vector<string> &record, const string& line, char delimiter)
 {

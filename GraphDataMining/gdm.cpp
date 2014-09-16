@@ -27,6 +27,11 @@ int main(){
 	DataFrame* df = new DataFrame();
 	read_table(file_path,df,' ');
 	cout<<df->getRows()[0][0]<<endl;
+
+	char out_file_path[40];
+	strcpy(out_file_path,BASE_PATH);
+	strcat(out_file_path,"output.txt");
+	write_table(out_file_path,df,',');
 	/*sd_test();
 	dnb_test();
 	generate_dnb();
