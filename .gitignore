@@ -52,4 +52,7 @@ hs_err_pid*
 #Debug folder
 */Debug/
 
+#Release folder
+*/Release/
+
 #c program end

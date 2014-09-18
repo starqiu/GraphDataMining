@@ -7,24 +7,10 @@
 using namespace std;
 
 void csvline_populate(vector<string> &record, const string& line, char delimiter);
+int read_table(string file_path,DataFrame* df,char delimiter);
+int read_table(string file_path,DataFrame* df,char delimiter,bool header);
+int write_table(string file_path,DataFrame* df,char delimiter);
 
-int mymain(int argc, char *argv[])
-{
-    vector<string> row;
-    string line;
-    ifstream in("input.csv");
-    if (in.fail())  { cout << "File not found" <<endl; return 0; }
-     
-    while(getline(in, line)  && in.good() )
-    {
-        csvline_populate(row, line, ',');
-        for(int i=0, leng=row.size(); i<leng; i++)
-            cout << row[i] << "\t";
-        cout << endl;
-    }
-    in.close();
-    return 0;
-}
 /**
 * read csv format file row by row to generate data frame 
 */
@@ -37,9 +23,34 @@ int read_table(string file_path,DataFrame* df,char delimiter){
     while(in.good() && getline(in, line) )
     {
         csvline_populate(row, line, delimiter);
-		/**for(int i=0, leng=row.size(); i<leng; i++)
-            cout << row[i] << "\t";
-        cout << endl;*/
+		df->pushRow(row);
+    }
+    in.close();
+    return 0;
+}
+
+/**
+* read csv format file row by row to generate data frame 
+*/
+int read_table(string file_path,DataFrame* df,char delimiter,bool header){
+	//no header
+	if(!header){
+		return read_table(file_path,df,delimiter);
+	}
+	//else the first row is header
+	vector<string> row;
+    string line;
+    ifstream in(file_path);
+    if (in.fail())  { cout << "File not found" <<endl; return 0; }
+    //get header
+	if(in.good() && getline(in, line)){
+		csvline_populate(row, line, delimiter);
+		df->setColNames(row);
+	}
+	//get rows
+    while(in.good() && getline(in, line) )
+    {
+        csvline_populate(row, line, delimiter);
 		df->pushRow(row);
     }
     in.close();
