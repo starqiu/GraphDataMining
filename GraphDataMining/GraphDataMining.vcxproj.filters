@@ -24,9 +24,15 @@
     <ClInclude Include="dataFrame.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="C:\DOCUME~1\ADMINI~1\LOCALS~1\Temp\Rar$DRa0.267\kmeans.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="gdm.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\DOCUME~1\ADMINI~1\LOCALS~1\Temp\Rar$DRa0.267\kmeans.c">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

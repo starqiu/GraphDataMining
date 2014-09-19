@@ -1,7 +1,3 @@
-#include  <stdio.h>
-#include <string>
-#include <fstream>
-#include <iostream>
 #include "fileUtils.h"
 
 using namespace std;
@@ -14,11 +10,11 @@ using namespace std;
 #define CLUSTER_AMOUNT  3 
 
 void divide_files_by_periods(string file_name);
-void calc_and_filter_sd (char* file_name);
+void calc_and_filter_sd (string file_name);
 void sd_test();
-void calc_pcc (char* file_name);
+void calc_pcc (string file_name);
 double calc_ci (double pccin,double pccout,double sd);
-void pcc_test (char* file_name);
+void pcc_test (string file_name);
 void dnb_test ();
 void generate_dnb ();
 void compare_to_example();
@@ -62,8 +58,8 @@ void divide_files_by_periods(string file_name){
 	
 }
 
-void calc_and_filter_sd (char*  file_name){
-
+void calc_and_filter_sd (string  file_name){
+	
 }
 
 void sd_test(){

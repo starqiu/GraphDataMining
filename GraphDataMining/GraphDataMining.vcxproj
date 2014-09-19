@@ -61,11 +61,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="C:\DOCUME~1\ADMINI~1\LOCALS~1\Temp\Rar$DRa0.267\kmeans.h" />
     <ClInclude Include="dataFrame.h" />
     <ClInclude Include="fileUtils.h" />
     <ClInclude Include="gdm.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="C:\DOCUME~1\ADMINI~1\LOCALS~1\Temp\Rar$DRa0.267\kmeans.c" />
     <ClCompile Include="gdm.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
