@@ -4,7 +4,9 @@ FILE.NAME <- "liver_labeled_data.txt"
 PERIOD.SAMPLE.COUNT <- 10 #each period has 10 samples
 PERIOD.COUNT <- 5 #we have 5 periods:4wk,8wk,12wk,16wk,20wk
 FEATURES.FILTERED.BY.SD <- 1000
+FEATURES.SD.THRESHOLD <- 0.05
 CLUSTER.AMOUNT <-3 
+CLUSTER.HCLUST.H <- 0.75
 
 
 divide.files.by.periods <- function(){
@@ -48,12 +50,37 @@ calc.and.filter.sd <- function(file.name,features.filered.by.sd=1000){
               sep="\t")
 }
 
+calc.and.filter.sd.by.threshold <- function(file.name,features.sd.threshold=0.05){
+  period.matrix.table <- read.table(paste(BASE.PATH,file.name,".txt",sep=""),
+                                    header=TRUE,sep="")  
+  z <- c(2:(PERIOD.SAMPLE.COUNT+1))
+  exam_names <-names(period.matrix.table)[z]
+  #mean <- apply(period.matrix.table[z],1,mean)
+  sd <- apply(period.matrix.table[z],1,sd) 
+  #mean.sd <- data.frame(mean=mean,sd=sd)
+  table.with.sd <- cbind(period.matrix.table,sd)
+  
+  write.table(table.with.sd,
+              paste(BASE.PATH,file.name,"_with_sd.txt",sep=""),
+              row.names=FALSE,
+              sep="\t")
+  table.sorted.by.sd <-table.with.sd[which(table.with.sd$sd >= features.sd.threshold),]
+#   table.sorted.by.sd <-table.with.sd[order(-table.with.sd$sd),]
+#   table.sorted.by.sd <- table.sorted.by.sd[c(1:features.filered.by.sd),]
+  write.table(table.sorted.by.sd,
+              paste(BASE.PATH,file.name,"_with_high_sd.txt",sep=""),
+              row.names=FALSE,
+              sep="\t")
+}
+
 sd.test <- function(){
   for(i in 1:PERIOD.COUNT){   
     #4wk,8wk,12wk,16wk,20wk
     period.name <- paste("matrix_table_",i*4,"wk",sep="")
-    calc.and.filter.sd(file.name=period.name,
-                      features.filered.by.sd=FEATURES.FILTERED.BY.SD)
+#     calc.and.filter.sd(file.name=period.name,
+#                       features.filered.by.sd=FEATURES.FILTERED.BY.SD)
+  calc.and.filter.sd.by.threshold(file.name=period.name,
+                       features.sd.threshold=FEATURES.SD.THRESHOLD)
   }
 }
 
@@ -63,7 +90,7 @@ calc.pcc <- function(file.name){
   geneIds <- filtered.table[,1] #as the row names and column names of matrix
   filtered.table <- filtered.table[,c(2:(PERIOD.SAMPLE.COUNT+1))]
   trans.matrix <- t(filtered.table) #matrix Transpose
-  cor.matrix <- 1-cor(trans.matrix)
+  cor.matrix <- cor(trans.matrix)
   rownames(cor.matrix) <- geneIds
   colnames(cor.matrix) <- geneIds
   write.table(cor.matrix,
@@ -78,14 +105,21 @@ calc.ci <- function(x,pccin,pccout,sd){
   x[pccout]*x[sd]/x[pccin]
 }
 
+# hclustfunc <- function(x, method = "complete", dmeth = "euclidean") {    
+#   hclust(dist(x, method = dmeth), method = method)
+# }
+
 pcc.test <- function(file.name){
   cor.table <- read.table(paste(BASE.PATH,file.name,"_cor_matrix.txt",sep=""),
                           header=TRUE,sep="")
   names(cor.table) <- row.names(cor.table)
+  cor.table <- abs(cor.table)
   #print(cor.table)
   
   set.seed(252964) # 设置随机值，为了得到一致结果。
-  kmeans_result <- kmeans(cor.table,CLUSTER.AMOUNT)
+#   kmeans_result <- kmeans(cor.table,CLUSTER.AMOUNT)
+  model <- hclust(as.dist(cor.table))
+  cluster <- cutree(model,h = CLUSTER.HCLUST.H)
   #print(kmeans_result)
   #print(kmeans_result$cluster)
   
@@ -98,7 +132,7 @@ pcc.test <- function(file.name){
   cluster.index <-0
   pcc.in.mean <- numeric()
   pcc.out.mean <- numeric()
-  cluster <- kmeans_result$cluster
+#   cluster <- kmeans_result$cluster
   cluster.vector <- vector()
   for (i in 1:FEATURES.FILTERED.BY.SD){
     cluster.index <- cluster[i]
@@ -111,7 +145,7 @@ pcc.test <- function(file.name){
     }
     
     
-    pccs <- abs(1-cor.table[,i])
+    pccs <- cor.table[,i]
     pcc.in <- numeric()
     pcc.out <- numeric()
     for (j in 1:FEATURES.FILTERED.BY.SD){
@@ -220,7 +254,4 @@ main <- function(){
 }
 
 system.time(main())
-
-
-
 

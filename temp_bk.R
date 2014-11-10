@@ -1,10 +1,8 @@
-for(i in 1:period.count){
-  #4wk,8wk,12wk,16wk,20wk
-  period.name <- paste("matrix_table_",i*4,"wk.txt",sep="")
-  calc.avg.and.deviation(file.name=period.name)
-}
+cor.table <- read.table(paste(BASE.PATH,"matrix_table_4wk_cor_matrix.txt",sep=""),
+                        header=TRUE,sep="")
+names(cor.table) <- row.names(cor.table)
+# cor.table <- 1-abs(cor.table)
 
-period.name <- paste("matrix_table_",1*4,"wk_with_mean_sd.txt",sep="")
-[c(1:features.filered.by.sd),c(2:(period.sample.count+4))]
-as.vector
-cbind(cluster,pcc.in.mean,pcc.out.mean,sds)
+m <- as.dist(cor.table)
+m1 <- dist(cor.table)
+write.table(as.matrix(m),"z.txt",sep="\t")
