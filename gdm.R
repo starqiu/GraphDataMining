@@ -1,5 +1,6 @@
 library(plyr)
-BASE.PATH <- "/host/data/"
+# BASE.PATH <- "/host/data/"
+BASE.PATH <- "~/gdm/"
 FILE.NAME <- "liver_labeled_data.txt"
 PERIOD.SAMPLE.COUNT <- 10 #each period has 10 samples
 PERIOD.COUNT <- 5 #we have 5 periods:4wk,8wk,12wk,16wk,20wk
@@ -7,6 +8,7 @@ FEATURES.FILTERED.BY.SD <- 1000
 FEATURES.SD.THRESHOLD <- 0.05
 CLUSTER.AMOUNT <-3 
 CLUSTER.HCLUST.H <- 0.75
+PCC.OUT.AMOUNT <- 50
 
 
 divide.files.by.periods <- function(){
@@ -30,7 +32,7 @@ divide.files.by.periods <- function(){
 
 calc.and.filter.sd <- function(file.name,features.filered.by.sd=1000){
   period.matrix.table <- read.table(paste(BASE.PATH,file.name,".txt",sep=""),
-                                   header=TRUE,sep="")  
+                                    header=TRUE,sep="")  
   z <- c(2:(PERIOD.SAMPLE.COUNT+1))
   exam_names <-names(period.matrix.table)[z]
   #mean <- apply(period.matrix.table[z],1,mean)
@@ -65,8 +67,8 @@ calc.and.filter.sd.by.threshold <- function(file.name,features.sd.threshold=0.05
               row.names=FALSE,
               sep="\t")
   table.sorted.by.sd <-table.with.sd[which(table.with.sd$sd >= features.sd.threshold),]
-#   table.sorted.by.sd <-table.with.sd[order(-table.with.sd$sd),]
-#   table.sorted.by.sd <- table.sorted.by.sd[c(1:features.filered.by.sd),]
+  #   table.sorted.by.sd <-table.with.sd[order(-table.with.sd$sd),]
+  #   table.sorted.by.sd <- table.sorted.by.sd[c(1:features.filered.by.sd),]
   write.table(table.sorted.by.sd,
               paste(BASE.PATH,file.name,"_with_high_sd.txt",sep=""),
               row.names=FALSE,
@@ -77,16 +79,16 @@ sd.test <- function(){
   for(i in 1:PERIOD.COUNT){   
     #4wk,8wk,12wk,16wk,20wk
     period.name <- paste("matrix_table_",i*4,"wk",sep="")
-#     calc.and.filter.sd(file.name=period.name,
-#                       features.filered.by.sd=FEATURES.FILTERED.BY.SD)
-  calc.and.filter.sd.by.threshold(file.name=period.name,
-                       features.sd.threshold=FEATURES.SD.THRESHOLD)
+    #     calc.and.filter.sd(file.name=period.name,
+    #                       features.filered.by.sd=FEATURES.FILTERED.BY.SD)
+    calc.and.filter.sd.by.threshold(file.name=period.name,
+                                    features.sd.threshold=FEATURES.SD.THRESHOLD)
   }
 }
 
 calc.pcc <- function(file.name){
   filtered.table <- read.table(paste(BASE.PATH,file.name,"_with_high_sd.txt",sep=""),
-                                    header=TRUE,sep="") 
+                               header=TRUE,sep="") 
   geneIds <- filtered.table[,1] #as the row names and column names of matrix
   filtered.table <- filtered.table[,c(2:(PERIOD.SAMPLE.COUNT+1))]
   trans.matrix <- t(filtered.table) #matrix Transpose
@@ -117,7 +119,7 @@ pcc.test <- function(file.name){
   #print(cor.table)
   
   set.seed(252964) # 设置随机值，为了得到一致结果。
-#   kmeans_result <- kmeans(cor.table,CLUSTER.AMOUNT)
+  #   kmeans_result <- kmeans(cor.table,CLUSTER.AMOUNT)
   model <- hclust(as.dist(cor.table))
   cluster <- cutree(model,h = CLUSTER.HCLUST.H)
   #print(kmeans_result)
@@ -132,9 +134,10 @@ pcc.test <- function(file.name){
   cluster.index <-0
   pcc.in.mean <- numeric()
   pcc.out.mean <- numeric()
-#   cluster <- kmeans_result$cluster
+  #   cluster <- kmeans_result$cluster
   cluster.vector <- vector()
-  for (i in 1:FEATURES.FILTERED.BY.SD){
+  seq <- 1:nrow(cor.table)
+  for (i in seq){
     cluster.index <- cluster[i]
     if(is.na(cluster.vector[cluster.index])){
       cluster.vector[cluster.index] <- row.names(cor.table)[i]
@@ -148,11 +151,10 @@ pcc.test <- function(file.name){
     pccs <- cor.table[,i]
     pcc.in <- numeric()
     pcc.out <- numeric()
-    for (j in 1:FEATURES.FILTERED.BY.SD){
-      if(i != j & cluster.index == cluster[j]){
+    for (j in seq[-i]){
+      if(cluster.index == cluster[j]){
         pcc.in <- append(pcc.in,pccs[j])
-      }
-      else if(i != j & cluster.index != cluster[j]){
+      }else{
         pcc.out <- append(pcc.out,pccs[j])
       }
     }
@@ -160,27 +162,28 @@ pcc.test <- function(file.name){
     if(is.nan(pcc.in.mean[i])){
       pcc.in.mean[i] <- 0
     }
-    pcc.out.mean[i] <- mean(pcc.out,na.rm=TRUE)
+    pcc.out <- pcc.out[order(-pcc.out)]
+    pcc.out.mean[i] <- mean(pcc.out[1:PCC.OUT.AMOUNT],na.rm=TRUE)
   }
-#   print(cluster.vector)
+  #   print(cluster.vector)
   cluster.pccin.pccout.sd <- cbind(cluster,pcc.in.mean,pcc.out.mean,sds)
-#   print(cluster.pccin.pccout.sd)
+  #   print(cluster.pccin.pccout.sd)
   cluster.pccin.pccout.sd.mean <-ddply(cluster.pccin.pccout.sd,.(cluster),
                                        summarize,
-                                      in.mean=mean(pcc.in.mean),
-                                      out.mean=mean(pcc.out.mean),
-                                      sd.mean=mean(sd))
-#   print(cluster.pccin.pccout.sd.mean)
+                                       in.mean=mean(pcc.in.mean),
+                                       out.mean=mean(pcc.out.mean),
+                                       sd.mean=mean(sd))
+  #   print(cluster.pccin.pccout.sd.mean)
   cluster.ci <- apply(cluster.pccin.pccout.sd.mean,
                       1,
                       calc.ci,
                       pccin="in.mean",
                       pccout="out.mean",
                       sd="sd.mean")
-#   print(cluster.pccin.pccout.sd.mean[1])
+  #   print(cluster.pccin.pccout.sd.mean[1])
   cluster.ci.features <- data.frame(cluster.pccin.pccout.sd.mean[1],cluster.ci,cluster.vector)
-#   print(cluster.ci.features)
-#  order by ci
+  #   print(cluster.ci.features)
+  #  order by ci
   cluster.ci.features <- cluster.ci.features[order(-cluster.ci.features$cluster.ci),]
   write.table(cluster.ci.features[1,],
               paste(BASE.PATH,"max_ci_features.txt"),
@@ -188,15 +191,15 @@ pcc.test <- function(file.name){
               sep="\t",
               append=TRUE,
               col.names=FALSE)
-#   print(cluster.ci.features)  
-#   ci.max <- max(cluster.ci)
-#   print("pcc.in.mean:")
-#   print(pcc.in.mean)
-#   print("pcc.out.mean:")
-#   print(pcc.out.mean)
+  #   print(cluster.ci.features)  
+  #   ci.max <- max(cluster.ci)
+  #   print("pcc.in.mean:")
+  #   print(pcc.in.mean)
+  #   print("pcc.out.mean:")
+  #   print(pcc.out.mean)
   
-#   library(fpc)
-#   plotcluster(cor.table, kmeans_result$cluster) # 生成聚类图
+  #   library(fpc)
+  #   plotcluster(cor.table, kmeans_result$cluster) # 生成聚类图
 }
 
 dnb.test <-function(){
@@ -207,7 +210,7 @@ dnb.test <-function(){
   for(i in 1:PERIOD.COUNT){
     #4wk,8wk,12wk,16wk,20wk
     period.name <- paste("matrix_table_",i*4,"wk",sep="")
-    calc.pcc(period.name)
+    #     calc.pcc(period.name)
     pcc.test(period.name)
   }
 }
@@ -252,6 +255,7 @@ main <- function(){
   generate.dnb()
   compare.to.example()
 }
-
-system.time(main())
-
+dnb.test()
+# generate.dnb()
+# compare.to.example()
+# system.time(main())
