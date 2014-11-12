@@ -49,5 +49,15 @@ hs_err_pid*
 *.a
 *.lib
 
+
 #c program end
 /bin/
+=======
+#Debug folder
+*/Debug/
+
+#Release folder
+*/Release/
+
+#c program end
+

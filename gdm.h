@@ -1,7 +1,11 @@
 #include  <stdio.h>
 #include <string.h>
+#include <fstream>
+#include <iostream>
 
-#define BASE_PATH   "/host/data/"
+using namespace std;
+
+#define BASE_PATH   "D:/data/"
 #define FILE_NAME  "liver_labeled_data_txt"
 #define PERIOD_SAMPLE_COUNT  10 //each period has 10 samples
 #define PERIOD_COUNT  5 //we have 5 periods:4wk,8wk,12wk,16wk,20wk
