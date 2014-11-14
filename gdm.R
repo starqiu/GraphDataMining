@@ -1,6 +1,6 @@
 library(plyr)
-# BASE.PATH <- "/host/data/"
-BASE.PATH <- "~/gdm/"
+BASE.PATH <- "/host/data/"
+# BASE.PATH <- "~/gdm/"
 FILE.NAME <- "liver_labeled_data.txt"
 PERIOD.SAMPLE.COUNT <- 10 #each period has 10 samples
 PERIOD.COUNT <- 5 #we have 5 periods:4wk,8wk,12wk,16wk,20wk
@@ -88,118 +88,94 @@ sd.test <- function(){
 
 calc.pcc <- function(file.name){
   filtered.table <- read.table(paste(BASE.PATH,file.name,"_with_high_sd.txt",sep=""),
-                               header=TRUE,sep="") 
+                               header=TRUE,sep="")
   geneIds <- filtered.table[,1] #as the row names and column names of matrix
   filtered.table <- filtered.table[,c(2:(PERIOD.SAMPLE.COUNT+1))]
   trans.matrix <- t(filtered.table) #matrix Transpose
-  cor.matrix <- cor(trans.matrix)
+  cor.matrix <- round(abs(cor(trans.matrix)),digits=2)
   rownames(cor.matrix) <- geneIds
   colnames(cor.matrix) <- geneIds
   write.table(cor.matrix,
               paste(BASE.PATH,file.name,"_cor_matrix.txt",sep=""),
               row.names=TRUE,
               sep="\t")
-  #print(trans.matrix)
-  #print(cor.matrix)  
 }
 
 calc.ci <- function(x,pccin,pccout,sd){
   x[pccout]*x[sd]/x[pccin]
 }
 
-# hclustfunc <- function(x, method = "complete", dmeth = "euclidean") {    
-#   hclust(dist(x, method = dmeth), method = method)
-# }
+pcc.test <- function(period.name){
 
-pcc.test <- function(file.name){
-  cor.table <- read.table(paste(BASE.PATH,file.name,"_cor_matrix.txt",sep=""),
+  cor.table <- read.table(paste(BASE.PATH,period.name,"_cor_matrix.txt",sep=""),
                           header=TRUE,sep="")
   names(cor.table) <- row.names(cor.table)
-  cor.table <- abs(cor.table)
-  #print(cor.table)
+  genes <- row.names(cor.table)
+  genes.number <- length(genes)
+  genes.index <- 1:genes.number
   
   set.seed(252964) # 设置随机值，为了得到一致结果。
-  #   kmeans_result <- kmeans(cor.table,CLUSTER.AMOUNT)
   model <- hclust(as.dist(cor.table))
   cluster <- cutree(model,h = CLUSTER.HCLUST.H)
-  #print(kmeans_result)
-  #print(kmeans_result$cluster)
   
-  sds <- read.table(paste(BASE.PATH,file.name,"_with_high_sd.txt",sep=""),
+  sds <- read.table(paste(BASE.PATH,period.name,"_with_high_sd.txt",sep=""),
                     header=TRUE,
                     sep="")[PERIOD.SAMPLE.COUNT+2]
-  #print(sds)
   
-  #calc pcc.in and pcc.out
-  cluster.index <-0
+  df.with.cluster.genes.sds <- cbind(cluster,genes.index)
+  df.with.cluster.genes.sds <- cbind(df.with.cluster.genes.sds,sds)
+  colnames(df.with.cluster.genes.sds) <-c("cluster","genes.index","sds")
+  df.aggr.by.cluster <- ddply(df.with.cluster.genes.sds,.(cluster),summarize,
+                              models = paste(genes.index,collapse=","),
+                              sd <- mean(sds))
+  colnames(df.aggr.by.cluster) <-c("cluster","models","sd")
+  
+  cluster.aggr <- df.aggr.by.cluster$cluster
+  models <- df.aggr.by.cluster$models
+  cluster.number <- length(cluster.aggr)
+  
+  #make sure cor.table is upper.tri
+  cor.table[!upper.tri(cor.table)] <-NA
+  
+  
   pcc.in.mean <- numeric()
   pcc.out.mean <- numeric()
-  #   cluster <- kmeans_result$cluster
-  cluster.vector <- vector()
-  seq <- 1:nrow(cor.table)
-  for (i in seq){
-    cluster.index <- cluster[i]
-    if(is.na(cluster.vector[cluster.index])){
-      cluster.vector[cluster.index] <- row.names(cor.table)[i]
-    }else{
-      cluster.vector[cluster.index] <- paste(cluster.vector[cluster.index],
-                                             row.names(cor.table)[i],
-                                             sep=",")
-    }
-    
-    
-    pccs <- cor.table[,i]
-    pcc.in <- numeric()
-    pcc.out <- numeric()
-    for (j in seq[-i]){
-      if(cluster.index == cluster[j]){
-        pcc.in <- append(pcc.in,pccs[j])
+  pcc.in <- numeric()
+  pcc.out <- numeric()
+  for(cluster.index in 1:cluster.number){
+    cur.model <- as.integer(unlist(strsplit(as.character(models[cluster.index]),",")))
+    for(row.index in 1:genes.number){
+      if(row.index %in% cur.model){
+        pcc.in <- append(pcc.in,cor.table[row.index,cur.model])
+        pcc.out <- append(pcc.out,cor.table[row.index,-cur.model])
       }else{
-        pcc.out <- append(pcc.out,pccs[j])
+        pcc.out <- append(pcc.out,cor.table[row.index,cur.model])
       }
     }
-    pcc.in.mean[i] <- mean(pcc.in,na.rm=TRUE)
-    if(is.nan(pcc.in.mean[i])){
-      pcc.in.mean[i] <- 0
+    pcc.in.mean[cluster.index] <-mean(unlist(pcc.in),na.rm=TRUE)
+    if(is.na(pcc.in.mean[cluster.index])){
+      pcc.in.mean[cluster.index] <- 0
     }
+    pcc.out <- unlist(pcc.out)
     pcc.out <- pcc.out[order(-pcc.out)]
-    pcc.out.mean[i] <- mean(pcc.out[1:PCC.OUT.AMOUNT],na.rm=TRUE)
+    pcc.out.mean[cluster.index] <- mean(pcc.out[1:PCC.OUT.AMOUNT],na.rm=TRUE)  
   }
-  #   print(cluster.vector)
-  cluster.pccin.pccout.sd <- cbind(cluster,pcc.in.mean,pcc.out.mean,sds)
-  #   print(cluster.pccin.pccout.sd)
-  cluster.pccin.pccout.sd.mean <-ddply(cluster.pccin.pccout.sd,.(cluster),
-                                       summarize,
-                                       in.mean=mean(pcc.in.mean),
-                                       out.mean=mean(pcc.out.mean),
-                                       sd.mean=mean(sd))
-  #   print(cluster.pccin.pccout.sd.mean)
-  cluster.ci <- apply(cluster.pccin.pccout.sd.mean,
-                      1,
-                      calc.ci,
-                      pccin="in.mean",
-                      pccout="out.mean",
-                      sd="sd.mean")
-  #   print(cluster.pccin.pccout.sd.mean[1])
-  cluster.ci.features <- data.frame(cluster.pccin.pccout.sd.mean[1],cluster.ci,cluster.vector)
-  #   print(cluster.ci.features)
-  #  order by ci
-  cluster.ci.features <- cluster.ci.features[order(-cluster.ci.features$cluster.ci),]
-  write.table(cluster.ci.features[1,],
-              paste(BASE.PATH,"max_ci_features.txt"),
+  
+  ci <- pcc.out.mean*(df.aggr.by.cluster$sd)/pcc.in.mean
+  ci.max <- max(ci) 
+  write.table(ci.max,
+              paste(BASE.PATH,period.name,"_max_ci.txt"),
               row.names=FALSE,
               sep="\t",
-              append=TRUE,
               col.names=FALSE)
-  #   print(cluster.ci.features)  
-  #   ci.max <- max(cluster.ci)
-  #   print("pcc.in.mean:")
-  #   print(pcc.in.mean)
-  #   print("pcc.out.mean:")
-  #   print(pcc.out.mean)
   
-  #   library(fpc)
-  #   plotcluster(cor.table, kmeans_result$cluster) # 生成聚类图
+  max.model <- genes[as.integer(unlist(strsplit(as.character(models[which.max(ci)]),",")))]
+  write.table(max.model,
+              paste(BASE.PATH,period.name,"_dnb.txt"),
+              row.names=FALSE,
+              sep="\t",
+              col.names=FALSE)
+  
 }
 
 dnb.test <-function(){
@@ -210,7 +186,7 @@ dnb.test <-function(){
   for(i in 1:PERIOD.COUNT){
     #4wk,8wk,12wk,16wk,20wk
     period.name <- paste("matrix_table_",i*4,"wk",sep="")
-    #     calc.pcc(period.name)
+    calc.pcc(period.name)
     pcc.test(period.name)
   }
 }
@@ -232,30 +208,42 @@ generate.dnb <-function(){
               col.names=FALSE,row.names=FALSE)
 }
 
+plot.ci <- function(){
+  ci <- numeric()
+  for(i in 1:PERIOD.COUNT){
+    #4wk,8wk,12wk,16wk,20wk
+    period.name <- paste("matrix_table_",i*4,"wk_max_ci.txt",sep="")
+    ci[i] <- read.table(paste(BASE.PATH,period.name) 
+  }
+  png("ci.png")
+  plot(c(1:PERIOD.COUNT)*4,ci)
+  dev.off()
+}
+
 compare.to.example <- function(){
-  example.dnb.t1 <-read.table(paste(BASE.PATH,"liver_DNB_t1.txt",sep=""))
-  example.dnb.t4 <-read.table(paste(BASE.PATH,"liver_DNB_t4.txt",sep=""))
-  dnb <-read.table(paste(BASE.PATH,"dnb.txt",sep=""))
-  #translate into vectors
-  example.dnb.t1 <- example.dnb.t1[,1]
-  example.dnb.t4 <- example.dnb.t4[,1]
-  dnb <- dnb[,1]
-  
+  example.dnb.t1 <-read.table(paste(BASE.PATH,"liver_DNB_t1.txt",sep=""))[,1]
+  example.dnb.t4 <-read.table(paste(BASE.PATH,"liver_DNB_t4.txt",sep=""))[,1]
+  dnb.4wk <-read.table(paste(BASE.PATH,"matrix_table_4wk_dnb.txt",sep=""))[,1]
+  dnb.16wk <-read.table(paste(BASE.PATH,"matrix_table_16wk_dnb.txt",sep=""))[,1]
+
   #find common features
-  common.features.t1 <- intersect(example.dnb.t1,dnb)
-  print(common.features.t1)
-  common.features.t4 <- intersect(example.dnb.t4,dnb)
-  print(common.features.t4)
+  common.features.t1 <- intersect(example.dnb.t1,dnb.4wk)
+  write.table(common.features.t1,paste(BASE.PATH,"common_4wk_dnb.txt",sep=""),sep="\n",
+              col.names=FALSE,row.names=FALSE)
+  common.features.t4 <- intersect(example.dnb.t4,dnb.16wk)
+  write.table(common.features.t4,paste(BASE.PATH,"common_16wk_dnb.txt",sep=""),sep="\n",
+              col.names=FALSE,row.names=FALSE)
 }
 
 main <- function(){
   divide.files.by.periods()
   sd.test()
   dnb.test()
-  generate.dnb()
+  plot.ci()
   compare.to.example()
 }
+sd.test()
 dnb.test()
-# generate.dnb()
+# plot.ci()
 # compare.to.example()
 # system.time(main())
