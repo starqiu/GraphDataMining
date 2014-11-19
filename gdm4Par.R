@@ -104,8 +104,9 @@ pcc.test <- function(period.name){
                               models = paste(genes.index,collapse=","),
                               sd = mean(sds))
   colnames(df.aggr.by.cluster) <-c("cluster","models","sd")
-  print("df.aggr.by.cluster=")
-  print(df.aggr.by.cluster)
+  #   print("df.aggr.by.cluster=")
+  #   print(df.aggr.by.cluster)
+  
   cluster.aggr <- df.aggr.by.cluster$cluster
   models <- df.aggr.by.cluster$models
   cluster.number <- length(cluster.aggr)
@@ -121,32 +122,36 @@ pcc.test <- function(period.name){
   
   for(cluster.index in 1:cluster.number){
     cur.model <- as.integer(unlist(strsplit(as.character(models[cluster.index]),",")))
+    cur.model.length <- length(cur.model)
+    print("cur.model.length=")
+    print(cur.model.length)
     pcc.in <- as.vector(cor.table[cur.model,cur.model])
     pcc.out <- c(as.vector(cor.table[-cur.model,cur.model]),
                  as.vector(cor.table[cur.model,-cur.model]))
     pcc.in.mean[cluster.index] <-mean(pcc.in,na.rm=TRUE)
     
     pcc.out <- pcc.out[order(-pcc.out)]
-    pcc.out.mean[cluster.index] <- mean(pcc.out[1:PCC.OUT.AMOUNT*length(cur.model)],na.rm=TRUE)  
+    pcc.out.mean[cluster.index] <- mean(pcc.out[1:(PCC.OUT.AMOUNT*cur.model.length)],na.rm=TRUE)  
     #     pcc.out.mean[cluster.index] <- mean(pcc.out,na.rm=TRUE)
     #     if(is.na(pcc.in.mean[cluster.index]) || (pcc.in.mean[cluster.index] == 0)){
     #     if(is.na(pcc.out.mean[cluster.index])){
     #       pcc.out.mean[cluster.index] <- 1000000
     #     }
-    print("pcc.in=")
-    print(pcc.in)
-    print("pcc.out[1:PCC.OUT.AMOUNT*length(cur.model)]=")
-    print(pcc.out[1:PCC.OUT.AMOUNT*length(cur.model)])
+    #     print("pcc.in=")
+    #     print(pcc.in)
+    #     print("pcc.out[1:(PCC.OUT.AMOUNT*cur.model.length)]=")
+    #     print(pcc.out[1:(PCC.OUT.AMOUNT*cur.model.length)])
   }
-  print("pcc.out.mean=")
-  print(pcc.out.mean)
-  print("pcc.in.mean=")
-  print(pcc.in.mean)
-  print("df.aggr.by.cluster$sd=")
-  print(df.aggr.by.cluster$sd)
+  #   print("pcc.out.mean=")
+  #   print(pcc.out.mean)
+  #   print("pcc.in.mean=")
+  #   print(pcc.in.mean)
+  #   print("df.aggr.by.cluster$sd=")
+  #   print(df.aggr.by.cluster$sd)
   ci <- pcc.in.mean*(df.aggr.by.cluster$sd)/pcc.out.mean
-  print("ci=")
-  print(ci)
+  #   print("ci=")
+  #   print(ci)
+  
   ci.max <- max(ci)
   write.table(ci.max,
               paste(BASE.PATH,period.name,"_max_ci.txt",sep=""),
@@ -167,7 +172,7 @@ dnb.test <-function(){
   for(i in 1:PERIOD.COUNT){
     #4wk,8wk,12wk,16wk,20wk
     period.name <- paste("matrix_table_",i*4,"wk",sep="")
-    calc.pcc(period.name)
+    #     calc.pcc(period.name)
     pcc.test(period.name)
   }
 }
@@ -180,6 +185,8 @@ plot.ci <- function(){
     period.name <- paste("matrix_table_",i*4,"wk_max_ci.txt",sep="")
     ci[i] <- read.table(paste(BASE.PATH,period.name,sep=""))
   }
+  print("ci=")
+  print(ci)
   setwd(BASE.PATH)
   png("ci.png")
   plot(periods,unlist(ci),
@@ -213,7 +220,7 @@ main <- function(){
   compare.to.example()
 }
 # sd.test()
-dnb.test()
-# plot.ci()
-# compare.to.example()
+system.time(dnb.test())
+plot.ci()
+compare.to.example()
 # system.time(main())
