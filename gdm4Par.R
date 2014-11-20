@@ -73,7 +73,6 @@ calc.pcc <- function(file.name){
   geneIds <- filtered.table[,1] #as the row names and column names of matrix
   filtered.table <- filtered.table[,c(2:(PERIOD.SAMPLE.COUNT+1))]
   trans.matrix <- t(filtered.table) #matrix Transpose
-  #   cor.matrix <- round(abs(cor(trans.matrix)),digits=2)
   cor.matrix <- abs(cor(trans.matrix))
   rownames(cor.matrix) <- geneIds
   colnames(cor.matrix) <- geneIds
@@ -127,16 +126,13 @@ pcc.test <- function(period.name){
   
   for(cluster.index in 1:cluster.number){
     cur.model <- as.integer(unlist(strsplit(as.character(models[cluster.index]),",")))
-    cur.model.length <- length(cur.model)
-    print("cur.model.length=")
-    print(cur.model.length)
     pcc.in <- as.vector(cor.table[cur.model,cur.model])
     pcc.out <- c(as.vector(cor.table[-cur.model,cur.model]),
                  as.vector(cor.table[cur.model,-cur.model]))
     pcc.in.mean[cluster.index] <-mean(pcc.in,na.rm=TRUE)
     
-    pcc.out <- pcc.out[order(-pcc.out)]
-    pcc.out.mean[cluster.index] <- mean(pcc.out[1:(PCC.OUT.AMOUNT*cur.model.length)],na.rm=TRUE)  
+    pcc.out <- pcc.out[order(pcc.out)]
+    pcc.out.mean[cluster.index] <- mean(pcc.out[1:PCC.OUT.AMOUNT],na.rm=TRUE)  
     #     pcc.out.mean[cluster.index] <- mean(pcc.out,na.rm=TRUE)
     #     if(is.na(pcc.in.mean[cluster.index]) || (pcc.in.mean[cluster.index] == 0)){
     #     if(is.na(pcc.out.mean[cluster.index])){
@@ -144,8 +140,8 @@ pcc.test <- function(period.name){
     #     }
     #     print("pcc.in=")
     #     print(pcc.in)
-    #     print("pcc.out[1:(PCC.OUT.AMOUNT*cur.model.length)]=")
-    #     print(pcc.out[1:(PCC.OUT.AMOUNT*cur.model.length)])
+    #     print("pcc.out[1:(PCC.OUT.AMOUNT]=")
+    #     print(pcc.out[1:PCC.OUT.AMOUNT])
   }
   #   print("pcc.out.mean=")
   #   print(pcc.out.mean)
