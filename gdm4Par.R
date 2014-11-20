@@ -21,7 +21,7 @@ divide.files.by.periods <- function(){
   z <- c((1-PERIOD.SAMPLE.COUNT):1)  
   
   foreach(i = 1:PERIOD.COUNT) %dopar% {
-    z <- z+PERIOD.SAMPLE.COUNT
+    z <- z+PERIOD.SAMPLE.COUNT*i
     z[1]<-1
     
     #4wk,8wk,12wk,16wk,20wk
