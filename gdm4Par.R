@@ -1,4 +1,7 @@
 library(plyr)
+library(foreach)
+library(doParallel)
+
 # BASE.PATH <- "/host/data/"
 BASE.PATH <- "~/gdm/"
 FILE.NAME <- "liver_labeled_data.txt"
@@ -7,7 +10,9 @@ PERIOD.COUNT <- 5 #we have 5 periods:4wk,8wk,12wk,16wk,20wk
 FEATURES.SD.THRESHOLD <- 0.05
 CLUSTER.HCLUST.H <- 0.75
 PCC.OUT.AMOUNT <- 50
+CORES <- 6
 
+registerDoParallel(cores=CORES)
 
 divide.files.by.periods <- function(){
   matrix.table <- read.table(paste(BASE.PATH,FILE.NAME,sep=""),
@@ -15,7 +20,7 @@ divide.files.by.periods <- function(){
   period.name <- ""
   z <- c((1-PERIOD.SAMPLE.COUNT):1)  
   
-  for(i in 1:PERIOD.COUNT){
+  foreach(i = 1:PERIOD.COUNT) %dopar% {
     z <- z+PERIOD.SAMPLE.COUNT
     z[1]<-1
     
@@ -52,7 +57,7 @@ calc.and.filter.sd.by.threshold <- function(file.name,features.sd.threshold=0.05
 }
 
 sd.test <- function(){
-  for(i in 1:PERIOD.COUNT){   
+  foreach(i = 1:PERIOD.COUNT) %dopar% {   
     #4wk,8wk,12wk,16wk,20wk
     period.name <- paste("matrix_table_",i*4,"wk",sep="")
     #     calc.and.filter.sd(file.name=period.name,
@@ -169,7 +174,7 @@ pcc.test <- function(period.name){
 }
 
 dnb.test <-function(){
-  for(i in 1:PERIOD.COUNT){
+  foreach(i = 1:PERIOD.COUNT) %dopar% {
     #4wk,8wk,12wk,16wk,20wk
     period.name <- paste("matrix_table_",i*4,"wk",sep="")
     #     calc.pcc(period.name)
