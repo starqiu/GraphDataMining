@@ -145,7 +145,7 @@ pcc.test <- function(period.name){
   
   for(cluster.index in 1:cluster.number){
     cur.model <- as.integer(unlist(strsplit(as.character(models[cluster.index]),",")))
-    pcc.in <- as.vector(gk.cor.table[cur.model,cur.model])
+    pcc.in <- as.vector(wt.cor.table[cur.model,cur.model])
     wt.pcc.out <- c(as.vector(wt.cor.table[-cur.model,cur.model]),
                     as.vector(wt.cor.table[cur.model,-cur.model]))
     gk.pcc.out <- c(as.vector(gk.cor.table[-cur.model,cur.model]),
@@ -153,8 +153,8 @@ pcc.test <- function(period.name){
     pcc.in.mean[cluster.index] <-mean(pcc.in,na.rm=TRUE)
     
     pcc.out <- cbind(wt.pcc.out,gk.pcc.out)
-    pcc.out <- pcc.out[order(pcc.out$wt.pcc.out)]
-    pcc.out.mean[cluster.index] <- mean(pcc.out[1:PCC.OUT.AMOUNT,2],na.rm=TRUE)  
+    pcc.out <- pcc.out[order(pcc.out[,1]),2]
+    pcc.out.mean[cluster.index] <- mean(pcc.out[1:PCC.OUT.AMOUNT],na.rm=TRUE)  
   }
   ci <- pcc.in.mean*(df.aggr.by.cluster$sd)/pcc.out.mean
   
@@ -241,6 +241,6 @@ foreach(i = 1:PERIOD.COUNT) %dopar% {
 }
 # sd.test()
 # system.time(dnb.test())
-# plot.ci()
-# compare.to.example()
+plot.ci()
+compare.to.example()
 # system.time(main())
