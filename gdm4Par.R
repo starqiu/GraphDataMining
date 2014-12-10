@@ -56,16 +56,23 @@ sd.test <- function(file.name,features.sd.threshold=0.05){
   wt.period.matrix.table <- read.table(paste(BASE.PATH,"wt_",file.name,".txt",sep=""),
                                        header=TRUE,sep="")  
   z <- c(2:(PERIOD.SAMPLE.COUNT+1))
-  #   gk.exam.names <-names(gk.period.matrix.table)[z]
-  #   wt.exam.names <-names(wt.period.matrix.table)[z]
   
   gk.sd <- apply(gk.period.matrix.table[z],1,sd) 
   wt.sd <- apply(wt.period.matrix.table[z],1,sd)
   
   gene.sd <- gk.sd/wt.sd
+  gene.length <- length(gene.sd)
+  gene.selet.sep <- gene.length * features.sd.threshold
   
-  high.sd.index <- which(gene.sd >= FEATURES.SD.THRESHOLD)
+  #   high.sd.index <- 1:gene.length 
+  high.sd.index <- order(gene.sd)
+  high.sd.index <- high.sd.index[c(1:gene.selet.sep,(gene.length-gene.selet.sep+1):gene.length)]
+  #   high.sd.index <- which(gene.sd >= FEATURES.SD.THRESHOLD)
   
+  write.table(gene.sd,
+              paste(BASE.PATH,file.name,"_sd.txt",sep=""),
+              row.names=FALSE,
+              sep="\t")
   write.table(gene.sd[high.sd.index],
               paste(BASE.PATH,file.name,"_high_sd.txt",sep=""),
               row.names=FALSE,
@@ -114,7 +121,7 @@ pcc.test <- function(period.name){
   gk.cor.table <- as.matrix(gk.cor.table)
   
   #   set.seed(252964) # 设置随机值，为了得到一致结果。
-  model <- hclust(as.dist(1-wt.cor.table))
+  model <- hclust(as.dist(1-gk.cor.table))
   cluster <- cutree(model,h = CLUSTER.HCLUST.H)
   
   sds <- read.table(paste(BASE.PATH,period.name,"_high_sd.txt",sep=""),
@@ -128,8 +135,6 @@ pcc.test <- function(period.name){
                               models = paste(genes.index,collapse=","),
                               sd = mean(sds))
   colnames(df.aggr.by.cluster) <-c("cluster","models","sd")
-  #   print("df.aggr.by.cluster=")
-  #   print(df.aggr.by.cluster)
   
   cluster.aggr <- df.aggr.by.cluster$cluster
   models <- df.aggr.by.cluster$models
@@ -145,16 +150,17 @@ pcc.test <- function(period.name){
   
   for(cluster.index in 1:cluster.number){
     cur.model <- as.integer(unlist(strsplit(as.character(models[cluster.index]),",")))
-    pcc.in <- as.vector(wt.cor.table[cur.model,cur.model])
-    wt.pcc.out <- c(as.vector(wt.cor.table[-cur.model,cur.model]),
-                    as.vector(wt.cor.table[cur.model,-cur.model]))
-    gk.pcc.out <- c(as.vector(gk.cor.table[-cur.model,cur.model]),
-                    as.vector(gk.cor.table[cur.model,-cur.model]))
-    pcc.in.mean[cluster.index] <-mean(pcc.in,na.rm=TRUE)
+    wt.pcc.in <- as.vector(wt.cor.table[cur.model,cur.model])
+    gk.pcc.in <- as.vector(gk.cor.table[cur.model,cur.model])
+    
+    wt.pcc.out <- as.vector(wt.cor.table[cur.model,-cur.model])
+    gk.pcc.out <- as.vector(gk.cor.table[cur.model,-cur.model])
+    
+    pcc.in.mean[cluster.index] <- mean(gk.pcc.in,na.rm=TRUE)/mean(wt.pcc.in,na.rm=TRUE)
     
     pcc.out <- cbind(wt.pcc.out,gk.pcc.out)
-    pcc.out <- pcc.out[order(pcc.out[,1]),2]
-    pcc.out.mean[cluster.index] <- mean(pcc.out[1:PCC.OUT.AMOUNT],na.rm=TRUE)  
+    pcc.out <- pcc.out[order(pcc.out[,1]),]
+    pcc.out.mean[cluster.index] <- mean(pcc.out[1:PCC.OUT.AMOUNT,2],na.rm=TRUE)/mean(pcc.out[1:PCC.OUT.AMOUNT,1],na.rm=TRUE)   
   }
   ci <- pcc.in.mean*(df.aggr.by.cluster$sd)/pcc.out.mean
   
@@ -234,10 +240,10 @@ foreach(i = 1:PERIOD.COUNT) %dopar% {
   #4wk,8wk,12wk,16wk,20wk
   file.name <- paste("matrix_table_",i*4,"wk",sep="")
   #   sd.test(file.name=file.name,features.sd.threshold=FEATURES.SD.THRESHOLD)
-  #   foreach(state = STATE) %dopar% {
-  #       calc.pcc(state,file.name)
-  #   }
-  pcc.test(file.name)
+  foreach(state = STATE) %dopar% {
+    calc.pcc(state,file.name)
+  }
+  #   pcc.test(file.name)
 }
 # sd.test()
 # system.time(dnb.test())
