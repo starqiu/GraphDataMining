@@ -70,14 +70,14 @@ sd.test <- function(file.name,features.sd.threshold=0.05){
   
   gene.sd <- gk.sd/wt.sd
   gene.sd.log <- log(gene.sd)
-  conf.interval <- z.test(gene.sd.log,length(gene.sd.log),mean(gene.sd.log),features.sd.threshold)
-  high.sd.index <- which(gene.sd.log<=conf.interval[1] | gene.sd.log<=conf.interval[2])
-#   gene.length <- length(gene.sd)
-#   gene.selet.sep <- gene.length * features.sd.threshold
-#   
-#   #   high.sd.index <- 1:gene.length 
-#   high.sd.index <- order(gene.sd)
-#   high.sd.index <- high.sd.index[c(1:gene.selet.sep,(gene.length-gene.selet.sep+1):gene.length)]
+  gene.sd.log.p <- unlist(lapply(gene.sd.log,pnorm,mean=mean(gene.sd.log),sd=sd(gene.sd.log)))
+  high.sd.index <- which((gene.sd.log.p <= features.sd.threshold) | (gene.sd.log.p >= (1-features.sd.threshold)))
+  #   gene.length <- length(gene.sd)
+  #   gene.selet.sep <- gene.length * features.sd.threshold
+  #   
+  #   #   high.sd.index <- 1:gene.length 
+  #   high.sd.index <- order(gene.sd)
+  #   high.sd.index <- high.sd.index[c(1:gene.selet.sep,(gene.length-gene.selet.sep+1):gene.length)]
   #   high.sd.index <- which(gene.sd >= FEATURES.SD.THRESHOLD)
   
   write.table(gene.sd,
@@ -204,8 +204,6 @@ pcc.test <- function(period.name){
   
 }
 
-norm
-
 plot.ci <- function(){
   ci <- numeric()
   periods <-1:PERIOD.COUNT
@@ -242,11 +240,21 @@ compare.to.example <- function(){
 }
 
 main <- function(){
-  #   divide.files.by.periods(FILE.NAME)
-  #   sd.test()
-  dnb.test()
-  plot.ci()
-  compare.to.example()
+  
+  divide.files.by.state(FILE.NAME)
+  foreach(state = STATE) %dopar% {
+    divide.files.by.periods(state,"_data.txt")
+  }
+  
+  for(i in 1:PERIOD.COUNT)  {   
+    #4wk,8wk,12wk,16wk,20wk
+    file.name <- paste("matrix_table_",i*4,"wk",sep="")
+    sd.test(file.name=file.name,features.sd.threshold=FEATURES.SD.THRESHOLD)
+    foreach(state = STATE) %dopar% {
+      calc.pcc(state,file.name)
+    }
+    pcc.test(file.name)
+  }
 }
 # divide.files.by.state(FILE.NAME)
 # foreach(state = STATE) %dopar% {
@@ -257,13 +265,11 @@ for(i in 1:PERIOD.COUNT)  {
   #4wk,8wk,12wk,16wk,20wk
   file.name <- paste("matrix_table_",i*4,"wk",sep="")
   sd.test(file.name=file.name,features.sd.threshold=FEATURES.SD.THRESHOLD)
-  #   foreach(state = STATE) %dopar% {
-  #     calc.pcc(state,file.name)
-  #   }
+  foreach(state = STATE) %dopar% {
+    calc.pcc(state,file.name)
+  }
   pcc.test(file.name)
 }
-# sd.test()
-# system.time(dnb.test())
 plot.ci()
 compare.to.example()
 # system.time(main())
