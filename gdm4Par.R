@@ -50,6 +50,14 @@ divide.files.by.periods <- function(state,file.name){
   }
 }
 
+z.test<-function(x,n,sigma,alpha){
+  mean<-mean(x)
+  ans<-c(
+    mean-sigma*qnorm(1-alpha/2,mean=0,sd=1,lower.tail=TRUE)/sqrt(n),
+    mean+sigma*qnorm(1-alpha/2,mean=0,sd=1,lower.tail=TRUE)/sqrt(n))
+  ans
+}
+
 sd.test <- function(file.name,features.sd.threshold=0.05){
   gk.period.matrix.table <- read.table(paste(BASE.PATH,"gk_",file.name,".txt",sep=""),
                                        header=TRUE,sep="")  
@@ -61,12 +69,15 @@ sd.test <- function(file.name,features.sd.threshold=0.05){
   wt.sd <- apply(wt.period.matrix.table[z],1,sd)
   
   gene.sd <- gk.sd/wt.sd
-  gene.length <- length(gene.sd)
-  gene.selet.sep <- gene.length * features.sd.threshold
-  
-  #   high.sd.index <- 1:gene.length 
-  high.sd.index <- order(gene.sd)
-  high.sd.index <- high.sd.index[c(1:gene.selet.sep,(gene.length-gene.selet.sep+1):gene.length)]
+  gene.sd.log <- log(gene.sd)
+  conf.interval <- z.test(gene.sd.log,length(gene.sd.log),mean(gene.sd.log),features.sd.threshold)
+  high.sd.index <- which(gene.sd.log<=conf.interval[1] | gene.sd.log<=conf.interval[2])
+#   gene.length <- length(gene.sd)
+#   gene.selet.sep <- gene.length * features.sd.threshold
+#   
+#   #   high.sd.index <- 1:gene.length 
+#   high.sd.index <- order(gene.sd)
+#   high.sd.index <- high.sd.index[c(1:gene.selet.sep,(gene.length-gene.selet.sep+1):gene.length)]
   #   high.sd.index <- which(gene.sd >= FEATURES.SD.THRESHOLD)
   
   write.table(gene.sd,
@@ -77,6 +88,16 @@ sd.test <- function(file.name,features.sd.threshold=0.05){
               paste(BASE.PATH,file.name,"_high_sd.txt",sep=""),
               row.names=FALSE,
               sep="\t")
+  
+  write.table(gk.sd[high.sd.index],
+              paste(BASE.PATH,"gk_",file.name,"_high_sd.txt",sep=""),
+              row.names=FALSE,
+              sep="\t")
+  write.table(wt.sd[high.sd.index],
+              paste(BASE.PATH,"wt_",file.name,"_high_sd.txt",sep=""),
+              row.names=FALSE,
+              sep="\t")
+  
   write.table(gk.period.matrix.table[high.sd.index,],
               paste(BASE.PATH,"gk_",file.name,"_with_high_sd.txt",sep=""),
               row.names=FALSE,
@@ -120,20 +141,21 @@ pcc.test <- function(period.name){
   #matrix is more lightweight
   gk.cor.table <- as.matrix(gk.cor.table)
   
-  #   set.seed(252964) # 设置随机值，为了得到一致结果。
   model <- hclust(as.dist(1-gk.cor.table))
   cluster <- cutree(model,h = CLUSTER.HCLUST.H)
   
-  sds <- read.table(paste(BASE.PATH,period.name,"_high_sd.txt",sep=""),
-                    header=TRUE,
-                    sep="")
+  gk.sd <- read.table(paste(BASE.PATH,"gk_",period.name,"_high_sd.txt",sep=""),
+                      header=TRUE,
+                      sep="")
+  wt.sd <- read.table(paste(BASE.PATH,"wt_",period.name,"_high_sd.txt",sep=""),
+                      header=TRUE,
+                      sep="")
   
-  df.with.cluster.genes.sds <- cbind(cluster,genes.index)
-  df.with.cluster.genes.sds <- cbind(df.with.cluster.genes.sds,sds)
-  colnames(df.with.cluster.genes.sds) <-c("cluster","genes.index","sds")
+  df.with.cluster.genes.sds <- cbind(cluster,genes.index,gk.sd,wt.sd)
+  colnames(df.with.cluster.genes.sds) <-c("cluster","genes.index","gk.sd","wt.sd")
   df.aggr.by.cluster <- ddply(df.with.cluster.genes.sds,.(cluster),summarize,
                               models = paste(genes.index,collapse=","),
-                              sd = mean(sds))
+                              sd = mean(gk.sd)/mean(wt.sd))
   colnames(df.aggr.by.cluster) <-c("cluster","models","sd")
   
   cluster.aggr <- df.aggr.by.cluster$cluster
@@ -150,17 +172,19 @@ pcc.test <- function(period.name){
   
   for(cluster.index in 1:cluster.number){
     cur.model <- as.integer(unlist(strsplit(as.character(models[cluster.index]),",")))
+    model.size <- length(cur.model)
     wt.pcc.in <- as.vector(wt.cor.table[cur.model,cur.model])
     gk.pcc.in <- as.vector(gk.cor.table[cur.model,cur.model])
     
-    wt.pcc.out <- as.vector(wt.cor.table[cur.model,-cur.model])
-    gk.pcc.out <- as.vector(gk.cor.table[cur.model,-cur.model])
+    wt.pcc.out <- as.vector(wt.cor.table[-cur.model,cur.model])
+    gk.pcc.out <- as.vector(gk.cor.table[-cur.model,cur.model])
     
-    pcc.in.mean[cluster.index] <- mean(gk.pcc.in,na.rm=TRUE)/mean(wt.pcc.in,na.rm=TRUE)
+    pcc.in.mean[cluster.index] <- (sum(gk.pcc.in,na.rm=TRUE)-model.size)/(sum(wt.pcc.in,na.rm=TRUE)-model.size)
     
     pcc.out <- cbind(wt.pcc.out,gk.pcc.out)
-    pcc.out <- pcc.out[order(pcc.out[,1]),]
-    pcc.out.mean[cluster.index] <- mean(pcc.out[1:PCC.OUT.AMOUNT,2],na.rm=TRUE)/mean(pcc.out[1:PCC.OUT.AMOUNT,1],na.rm=TRUE)   
+    pcc.out <- pcc.out[order(-pcc.out[,1]),]
+    pcc.out <- pcc.out[1:(PCC.OUT.AMOUNT*model.size),]
+    pcc.out.mean[cluster.index] <- mean(pcc.out[,2],na.rm=TRUE)/mean(pcc.out[,1],na.rm=TRUE)   
   }
   ci <- pcc.in.mean*(df.aggr.by.cluster$sd)/pcc.out.mean
   
@@ -180,14 +204,7 @@ pcc.test <- function(period.name){
   
 }
 
-dnb.test <-function(){
-  foreach(i = 1:PERIOD.COUNT) %dopar% {
-    #4wk,8wk,12wk,16wk,20wk
-    period.name <- paste("matrix_table_",i*4,"wk",sep="")
-    #     calc.pcc(period.name)
-    pcc.test(period.name)
-  }
-}
+norm
 
 plot.ci <- function(){
   ci <- numeric()
@@ -236,14 +253,14 @@ main <- function(){
 #   divide.files.by.periods(state,"_data.txt")
 # }
 
-foreach(i = 1:PERIOD.COUNT) %dopar% {   
+for(i in 1:PERIOD.COUNT)  {   
   #4wk,8wk,12wk,16wk,20wk
   file.name <- paste("matrix_table_",i*4,"wk",sep="")
-  #   sd.test(file.name=file.name,features.sd.threshold=FEATURES.SD.THRESHOLD)
-  foreach(state = STATE) %dopar% {
-    calc.pcc(state,file.name)
-  }
-  #   pcc.test(file.name)
+  sd.test(file.name=file.name,features.sd.threshold=FEATURES.SD.THRESHOLD)
+  #   foreach(state = STATE) %dopar% {
+  #     calc.pcc(state,file.name)
+  #   }
+  pcc.test(file.name)
 }
 # sd.test()
 # system.time(dnb.test())
