@@ -10,7 +10,7 @@ PERIOD.COUNT <- 5 #we have 5 periods:4wk,8wk,12wk,16wk,20wk
 PERIOD.SAMPLE.SEP <- 10 #each period has 10 samples
 PERIOD.SAMPLE.COUNT <- 5 # divide into GK and WKY, each have 5 samples 
 STATE <- c("gk","wt") #gk is case,wt is control
-FEATURES.SD.THRESHOLD <- 0.3
+FEATURES.SD.THRESHOLD <- 0.001
 CLUSTER.HCLUST.H <- 0.75
 PCC.OUT.AMOUNT <- 50
 CORES <- 6
@@ -239,27 +239,29 @@ compare.to.example <- function(){
 
 main <- function(){
   
-  divide.files.by.state(FILE.NAME)
-  foreach(state = STATE) %dopar% {
-    divide.files.by.periods(state,"_data.txt")
-  }
+  # divide.files.by.state(FILE.NAME)
+  # foreach(state = STATE) %dopar% {
+  #   divide.files.by.periods(state,"_data.txt")
+  # }
   
-  for(i in 1:PERIOD.COUNT)  {   
+  foreach (period = 1:PERIOD.COUNT) %dopar% {   
     #4wk,8wk,12wk,16wk,20wk
-    file.name <- paste("matrix_table_",i*4,"wk",sep="")
+    file.name <- paste("matrix_table_",period*4,"wk",sep="")
     sd.test(file.name=file.name,features.sd.threshold=FEATURES.SD.THRESHOLD)
     foreach(state = STATE) %dopar% {
-      calc.pcc(state,file.name)
+      calc.pcc(state,period)
     }
-    pcc.test(file.name)
+    pcc.test(period)
   }
+  plot.ci()
+  #   compare.to.example()
 }
 # divide.files.by.state(FILE.NAME)
 # foreach(state = STATE) %dopar% {
 #   divide.files.by.periods(state,"_data.txt")
 # }
 
-for(period in 1:PERIOD.COUNT)  {   
+foreach (period = 1:PERIOD.COUNT) %dopar% {   
   #4wk,8wk,12wk,16wk,20wk
   file.name <- paste("matrix_table_",period*4,"wk",sep="")
   sd.test(file.name=file.name,features.sd.threshold=FEATURES.SD.THRESHOLD)
@@ -269,5 +271,5 @@ for(period in 1:PERIOD.COUNT)  {
   pcc.test(period)
 }
 plot.ci()
-compare.to.example()
+# compare.to.example()
 # system.time(main())
