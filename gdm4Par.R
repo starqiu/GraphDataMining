@@ -15,7 +15,7 @@ CLUSTER.HCLUST.H <- 0.75
 PCC.OUT.AMOUNT <- 50
 CORES <- 6
 
-registerDoParallel(cores=CORES)
+
 
 #GK , WT
 divide.files.by.state <- function(file.name){
@@ -50,14 +50,6 @@ divide.files.by.periods <- function(state,file.name){
   }
 }
 
-z.test<-function(x,n,sigma,alpha){
-  m<-mean(x)
-  ans<-c(
-    m - sigma*qnorm(1-alpha/2,mean=0,sd=1,lower.tail=TRUE)/sqrt(n),
-    m + sigma*qnorm(1-alpha/2,mean=0,sd=1,lower.tail=TRUE)/sqrt(n))
-  ans
-}
-
 sd.test <- function(file.name,features.sd.threshold=0.05){
   gk.period.matrix.table <- read.table(paste(BASE.PATH,"gk_",file.name,".txt",sep=""),
                                        header=TRUE,sep="")  
@@ -71,14 +63,10 @@ sd.test <- function(file.name,features.sd.threshold=0.05){
   gene.sd <- gk.sd/wt.sd
   gene.sd.log <- log(gene.sd)
   gene.sd.log.p <- unlist(lapply(gene.sd.log,pnorm,mean=mean(gene.sd.log),sd=sd(gene.sd.log)))
-  high.sd.index <- which((gene.sd.log.p <= features.sd.threshold) | (gene.sd.log.p >= (1-features.sd.threshold)))
-  #   gene.length <- length(gene.sd)
-  #   gene.selet.sep <- gene.length * features.sd.threshold
-  #   
-  #   #   high.sd.index <- 1:gene.length 
-  #   high.sd.index <- order(gene.sd)
-  #   high.sd.index <- high.sd.index[c(1:gene.selet.sep,(gene.length-gene.selet.sep+1):gene.length)]
-  #   high.sd.index <- which(gene.sd >= FEATURES.SD.THRESHOLD)
+  high.sd.index <- which((gene.sd.log.p <= features.sd.threshold) | (gene.sd.log.p >= (1-features.sd.threshold))) 
+  #li's method
+  #   sd.log.threshold <- pnorm(features.sd.threshold/2,mean=mean(gene.sd.log),sd=sd(gene.sd.log))
+  #   high.sd.index <- which(abs(gene.sd.log) >= sd.log.threshold)
   
   write.table(gene.sd,
               paste(BASE.PATH,file.name,"_sd.txt",sep=""),
@@ -154,7 +142,8 @@ pcc.test <- function(period){
   colnames(df.with.cluster.genes.sds) <-c("cluster","genes.index","gk.sd","wt.sd")
   df.aggr.by.cluster <- ddply(df.with.cluster.genes.sds,.(cluster),summarize,
                               models = paste(genes.index,collapse=","),
-                              sd = mean(gk.sd)/mean(wt.sd))
+                              sd = mean(gk.sd)/mean(wt.sd),
+                              .parallel=TRUE)
   colnames(df.aggr.by.cluster) <-c("cluster","models","sd")
   
   cluster.aggr <- df.aggr.by.cluster$cluster
@@ -162,7 +151,7 @@ pcc.test <- function(period){
   cluster.number <- length(cluster.aggr)
   
   
-  #make sure wt.cor.table is upper.tri
+  #the diag of table is meaningless
   diag(wt.cor.table) <- NA
   diag(gk.cor.table) <- NA
   
@@ -203,15 +192,21 @@ pcc.test <- function(period){
 }
 
 plot.ci <- function(){
-  ci <- numeric()
+  ci <<- numeric()
   periods <-1:PERIOD.COUNT
   for(i in periods){
     #4wk,8wk,12wk,16wk,20wk
     period.name <- paste("matrix_table_",i*4,"wk_max_ci.txt",sep="")
-    ci[i] <- read.table(paste(BASE.PATH,period.name,sep=""))
+    ci[i] <<- read.table(paste(BASE.PATH,period.name,sep=""))
   }
-  print("ci=")
-  print(ci)
+  names(ci) <<- c("4wk","8wk","12wk","16wk","20wk")
+  print("ci table:")
+  print(as.table(unlist(ci)))
+  write.table(ci,
+              paste(BASE.PATH,"all_ci.txt",sep=""),
+              row.names=FALSE,
+              sep="\t",
+              col.names=FALSE)
   setwd(BASE.PATH)
   png("ci.png")
   plot(periods,unlist(ci),
@@ -238,13 +233,15 @@ compare.to.example <- function(){
 }
 
 main <- function(){
+  registerDoParallel(cores=CORES)
   
-  # divide.files.by.state(FILE.NAME)
-  # foreach(state = STATE) %dopar% {
-  #   divide.files.by.periods(state,"_data.txt")
-  # }
+  divide.files.by.state(FILE.NAME)
+  foreach(state = STATE) %dopar% {
+    divide.files.by.periods(state,"_data.txt")
+  }
   
-  foreach (period = 1:PERIOD.COUNT) %dopar% {   
+  foreach (period = 1:PERIOD.COUNT) %dopar% {
+    # for (period in 1:PERIOD.COUNT)  {
     #4wk,8wk,12wk,16wk,20wk
     file.name <- paste("matrix_table_",period*4,"wk",sep="")
     sd.test(file.name=file.name,features.sd.threshold=FEATURES.SD.THRESHOLD)
@@ -254,22 +251,6 @@ main <- function(){
     pcc.test(period)
   }
   plot.ci()
-  #   compare.to.example()
 }
-# divide.files.by.state(FILE.NAME)
-# foreach(state = STATE) %dopar% {
-#   divide.files.by.periods(state,"_data.txt")
-# }
 
-foreach (period = 1:PERIOD.COUNT) %dopar% {   
-  #4wk,8wk,12wk,16wk,20wk
-  file.name <- paste("matrix_table_",period*4,"wk",sep="")
-  sd.test(file.name=file.name,features.sd.threshold=FEATURES.SD.THRESHOLD)
-  foreach(state = STATE) %dopar% {
-    calc.pcc(state,period)
-  }
-  pcc.test(period)
-}
-plot.ci()
-# compare.to.example()
-# system.time(main())
+system.time(main())
