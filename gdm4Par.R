@@ -1,3 +1,9 @@
+#! /usr/bin/Rscript --no-save
+#
+#' @author : star qiu
+#' @date 2014.8.1
+#' 
+#' 
 library(plyr)
 library(foreach)
 library(doParallel)
@@ -15,7 +21,64 @@ CLUSTER.HCLUST.H <- 0.75
 PCC.OUT.AMOUNT <- 50
 CORES <- 6
 
+init <- function(args){
+  len <- length(args)
+  for (i in seq(1,len,by=2)){
+    set.key.value(args[i],args[i+1])
+  }
+}
 
+set.key.value  <- function(key,value){
+  switch(key,
+         "-p" = ,
+         "--base.path" = BASE.PATH <<- value,
+         "-f" = ,
+         "--file.name" = FILE.NAME <<- value,
+         "--period.count" = PERIOD.COUNT <<- as.integer(value),
+         "--period.sample.count" = PERIOD.SAMPLE.COUNT <<- as.integer(value),
+         "--period.sample.sep" = PERIOD.SAMPLE.SEP <<- as.integer(value),
+         "--features.sd.threshold" = FEATURES.SD.THRESHOLD <<- as.numeric(value),
+         "--cluster.hclust.h" = CLUSTER.HCLUST.H <<- as.numeric(value),
+         "--pcc.out.amount" = PCC.OUT.AMOUNT <<- as.integer(value),
+         "--cores" = CORES <<- as.integer(value)
+  )
+}
+
+print.usage <- function(){
+  cat("Usage: gdm4Par.R [-h/--help | -p/--base.path directory] \n
+        [-f/--file.name file] [--period.count number] \n
+        [--period.sample.count number] [--period.sample.sep number] \n
+        [--features.sd.threshold float] [--cluster.hclust.h float] \n
+        [--pcc.out.amount number] [cores number]\n")
+  cat("Details:\n")
+  cat("\t -h/--help   show the usage of gdm4Par.R \n")
+  cat("\t -p/--base.path   set the base running  directory of program .
+                           the value could be ~/gdm/ \n")
+  cat("\t -f/--file.name   set the name of data file. 
+                           the default is liver_labeled_data.txt \n")
+  cat("\t --period.count   set the number of periods we have
+                           the default is 5 periods:4wk,8wk,12wk,16wk,20wk \n")
+  cat("\t --period.sample.count   set the number of samples at each period 
+                                  for each sort of rat . the default is 5 \n")
+  cat("\t --period.sample.sep   set the number of samples at each period
+                                the default is 10. \n")
+  cat("\t --features.sd.threshold   set the threshold of filtering SD
+                                    the default is 0.001 \n")
+  cat("\t --cluster.hclust.h   set the h value when we call the cutree function
+                               the default is 0.75 \n")
+  cat("\t --pcc.out.amount  set the max number of the PCC between two modules 
+                            we select to calculate. the default is 50 \n")
+  cat("\t --cores  set the number of cores we use for parallel program 
+                   the default is 6 \n")
+  cat("Description:\n")
+  cat("\t  if -h/--help is appeared,the other parameters is ignored. 
+      otherwise base.path is necessary.
+       \t  if you want have more cores ,you can set it larger value ,
+      the program may run faster.
+       \t  change features.sd.threshold may have suprise. it's good encough
+      to the data of rat's liver.
+      \n")
+}
 
 #GK , WT
 divide.files.by.state <- function(file.name){
@@ -50,7 +113,7 @@ divide.files.by.periods <- function(state,file.name){
   }
 }
 
-sd.test <- function(file.name,features.sd.threshold=0.05){
+sd.test <- function(file.name,features.sd.threshold=0.001){
   gk.period.matrix.table <- read.table(paste(BASE.PATH,"gk_",file.name,".txt",sep=""),
                                        header=TRUE,sep="")  
   wt.period.matrix.table <- read.table(paste(BASE.PATH,"wt_",file.name,".txt",sep=""),
@@ -65,9 +128,9 @@ sd.test <- function(file.name,features.sd.threshold=0.05){
   gene.sd.log.p <- unlist(lapply(gene.sd.log,pnorm,mean=mean(gene.sd.log),sd=sd(gene.sd.log)))
   high.sd.index <- which((gene.sd.log.p <= features.sd.threshold) | (gene.sd.log.p >= (1-features.sd.threshold))) 
   #li's method
-  #   sd.log.threshold <- pnorm(features.sd.threshold/2,mean=mean(gene.sd.log),sd=sd(gene.sd.log))
-  #   high.sd.index <- which(abs(gene.sd.log) >= sd.log.threshold)
-  
+#   sd.log.threshold <- pnorm(features.sd.threshold/2,mean=mean(gene.sd.log),sd=sd(gene.sd.log))
+#   high.sd.index <- which(abs(gene.sd.log) >= sd.log.threshold)
+
   write.table(gene.sd,
               paste(BASE.PATH,file.name,"_sd.txt",sep=""),
               row.names=FALSE,
@@ -232,7 +295,8 @@ compare.to.example <- function(){
               col.names=FALSE,row.names=FALSE)
 }
 
-main <- function(){
+
+gdm <- function(){
   registerDoParallel(cores=CORES)
   
   divide.files.by.state(FILE.NAME)
@@ -253,4 +317,14 @@ main <- function(){
   plot.ci()
 }
 
+main <- function(){
+  args <- commandArgs(TRUE)
+  if ((length(args) %% 2 != 0) | (length(args) == 0)){
+    print.usage()
+  }else {
+    init(args)
+    gdm()
+  }
+}
+#main()
 system.time(main())
